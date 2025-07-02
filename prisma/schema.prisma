@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  hashedPassword  String
+  hasAccess       Boolean  @default(false)
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  gender          String?
+  age             Int?
+  hairColor       String?
+  hairLength      String?
+  ethnicity       String?
+  bodyType        String?
+  attire          String?
+  backgrounds     String?
+  glasses         Boolean?
+  instanceImages  String[] // for user-uploaded images (the ones they provide)
+  hasDetails      Boolean  @default(false)
+  generatedImages String[] // for the AI-generated images
+}
