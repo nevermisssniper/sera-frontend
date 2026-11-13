@@ -1,0 +1,20 @@
+[
+  {
+    "id": "sera-frontend",
+    "name": "Sera Studio",
+    "category": "Applications",
+    "headline": "A portrait workflow you can inspect.",
+    "description": "Build a session, preview your source photos and export a reproducible generation brief.",
+    "mode": "studio",
+    "maturity": "Existing application",
+    "disclosure": "Local workflow preview. No generated portraits, payment or GPU calls.",
+    "features": [
+      "Photo preview",
+      "Style direction",
+      "Session export"
+    ],
+    "remaining": "Live generation needs the paired worker, PostgreSQL, Uploadcare, service secrets and payment configuration.",
+    "number": "04",
+    "repo": "https://github.com/nevermisssniper/sera-frontend"
+  }
+]
