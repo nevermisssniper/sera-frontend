@@ -1,4 +1,3 @@
-
 # Headshot-AI Website
 
 This repository hosts the frontend code for Headshot-AI, an AI-driven headshot creation platform. It is part of [Sera Laboratories](seralaboratories.com) — a suite of AI applications aiming to bring innovative AI solutions to various fields.
@@ -46,3 +45,9 @@ For questions, suggestions, or further collaboration:
 - **Company:** Sera Laboratories (seralaboratories@gmail.com)
 
 Feel free to submit any issues or feature requests through the GitHub Issues page.
+
+
+
+## Interactive workbench (2026-11-13)
+
+Run `python serve_demo.py`, then open <http://127.0.0.1:8000>. See [QUICKSTART.md](QUICKSTART.md) for core commands, tests, provenance and remaining requirements.
