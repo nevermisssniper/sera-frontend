@@ -1,7 +1,7 @@
 // app/api/my-images/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { checkAuth } from "@/lib/server-utils";
+import { auth } from "@/lib/auth-no-edge";
 import prisma from "@/lib/db";
 import { createSignedHeaders, md5hash } from "@/lib/uploadcare";
 
@@ -11,8 +11,8 @@ function getRfcDate() {
 
 export async function GET(request: NextRequest) {
   // 1) Check if user is authenticated
-  const session = await checkAuth();
-  if (!session) {
+  const session = await auth();
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
 
@@ -37,14 +37,14 @@ export async function GET(request: NextRequest) {
 //DELETING A GENERATED IMAGE:
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await checkAuth();
-    if (!session) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const uuid = searchParams.get("uuid");
-    if (!uuid) {
+    if (!uuid || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) {
       return NextResponse.json(
         { error: "Missing image uuid" },
         { status: 400 }
@@ -103,8 +103,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // If it got here, UC says it deleted the file successfully.
-    // Then remove from your DB as you already do.
+    // Remove only this UUID atomically: concurrent callbacks/deletes must
+    // not be overwritten by a stale read of the entire image array.
+    await prisma.$executeRaw`
+      UPDATE "User" SET "generatedImages" = array_remove("generatedImages", ${uuid}),
+        "updatedAt" = NOW() WHERE "id" = ${session.user.id}
+    `;
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -112,3 +116,4 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Delete failed" }, { status: 500 });
   }
 }
+

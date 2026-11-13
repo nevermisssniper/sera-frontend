@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import logo from "@/public/logo.png"; // Replace with your actual logo image
 import Logo from "./logo";
 
 export default function AppHeader({ userEmail }: { userEmail: string }) {
@@ -30,3 +29,4 @@ export default function AppHeader({ userEmail }: { userEmail: string }) {
     </header>
   );
 }
+

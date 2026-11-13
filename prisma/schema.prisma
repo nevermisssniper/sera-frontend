@@ -28,5 +28,8 @@ model User {
   glasses         Boolean?
   instanceImages  String[] // for user-uploaded images (the ones they provide)
   hasDetails      Boolean  @default(false)
+  pendingGenerationId String?
+  completedGenerationId String?
   generatedImages String[] // for the AI-generated images
 }
+

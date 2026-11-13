@@ -76,7 +76,7 @@ export const nextAuthEdgeConfig = {
       return false;
     },
     jwt: async ({ token, user, trigger }) => {
-      if (user) {
+      if (user?.id) {
         // on sign in
         token.userId = user.id;
         token.email = user.email!;
@@ -111,3 +111,4 @@ export const nextAuthEdgeConfig = {
 
   //satisfies is another way of specifying types
 } satisfies NextAuthConfig;
+
