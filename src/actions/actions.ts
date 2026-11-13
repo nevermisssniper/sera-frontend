@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "crypto";
+
 import { auth, signIn, signOut } from "@/lib/auth-no-edge";
 import prisma from "@/lib/db";
 import { authSchema, userProfileSchema } from "@/lib/validations";
@@ -192,6 +194,11 @@ export async function generateHeadshots() {
     throw new Error("User does not exist in the database");
   }
 
+  if (!user.hasAccess) throw new Error("Payment required");
+  const serviceToken = process.env.GENERATION_SERVICE_TOKEN;
+  if (!serviceToken) throw new Error("Generation service is not configured");
+  const jobId = randomUUID();
+
   // 3. Confirm that required details exist
   if (!user.hasDetails) {
     console.log("hasDetails is false or user's profile is incomplete");
@@ -201,6 +208,7 @@ export async function generateHeadshots() {
   // 4. Prepare the request payload for the Python backend
   const payload = {
     userId: user.id,
+    jobId,
     gender: user.gender,
     age: user.age,
     hairColor: user.hairColor,
@@ -212,8 +220,7 @@ export async function generateHeadshots() {
     glasses: user.glasses,
     instanceImages: user.instanceImages, // array of Uploadcare UUIDs from earlier
 
-    // IMPORTANT: Add a callbackUrl that the Python script will hit when it's done
-    callbackUrl: `${process.env.CANONICAL_URL}/api/generate-callback`,
+    // The worker uses its configured callback URL; callers cannot choose it.
   };
 
   // 5. Call your Python FastAPI endpoint
@@ -223,18 +230,27 @@ export async function generateHeadshots() {
     throw new Error("Python backend URL is not set in environment variables");
   }
 
+  const claimed = await prisma.user.updateMany({
+    where: { id: user.id, pendingGenerationId: null },
+    data: { pendingGenerationId: jobId },
+  });
+  if (!claimed.count) throw new Error("A generation job is already pending");
+
+  // On transport errors the job may already be queued. Preserve its ID so
+  // its callback remains valid; do not silently enqueue a duplicate GPU job.
   const response = await fetch(`${pythonBackendURL}/generate`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceToken}` },
     body: JSON.stringify(payload),
   });
-
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Python backend error:", errorText);
-    throw new Error(
-      `Python backend responded with status ${response.status}: ${errorText}`
-    );
+    // Definite validation/auth failures happen before enqueueing.
+    if (response.status >= 400 && response.status < 500) {
+      await prisma.user.updateMany({
+        where: { id: user.id, pendingGenerationId: jobId }, data: { pendingGenerationId: null },
+      });
+    }
+    throw new Error(`Generation service returned ${response.status}`);
   }
 
   // We *don't* wait for 2 hours. The Python side will callback.
@@ -275,3 +291,4 @@ export async function createCheckoutSession() {
   // redirect user
   redirect(checkoutSession.url);
 }
+
